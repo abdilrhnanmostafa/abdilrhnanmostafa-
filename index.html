@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#05050A">
+<title>WASL — وَصْل | تواصل أقرب</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ============================================================
+   WASL — AURORA PRIME (FULL CHAT + CALLS + RECORDING)
+   ============================================================ */
+:root{
+  --bg:#05050A; --glass:rgba(18,18,28,0.65); --border:rgba(255,255,255,0.08);
+  --text:#ffffff; --muted:#9ca3af; --primary:#8b5cf6; --secondary:#ec4899;
+  --grad-primary:linear-gradient(135deg,#8b5cf6,#ec4899);
+  --grad-chat-me:linear-gradient(135deg,#9333ea,#c026d3);
+  --grad-story:conic-gradient(from 0deg, #ec4899, #8b5cf6, #3b82f6, #ec4899);
+  --shadow-glow:0 0 20px rgba(139,92,246,0.3);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background-color:var(--bg); background-image: radial-gradient(circle at 10% 10%, rgba(139,92,246,0.15) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(236,72,153,0.15) 0%, transparent 40%);
+  background-attachment:fixed; color:var(--text); font-family:'Cairo', sans-serif; line-height:1.6; min-height:100vh; overflow-x:hidden; padding-bottom:110px;
+}
+button,input,textarea{font-family:inherit; outline:none;}
+button{border:none; cursor:pointer; background:none; transition:all 0.2s;}
+button:active{transform:scale(0.95);}
+.hidden{display:none!important;} .muted{color:var(--muted); font-size:13px;}
+::-webkit-scrollbar{width:6px; height:6px;} ::-webkit-scrollbar-thumb{background:var(--primary); border-radius:10px;}
+
+/* ================= AUTH ================= */
+.auth-screen{position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:rgba(5,5,10,0.9); backdrop-filter:blur(20px);}
+.auth-box{width:100%; max-width:400px; padding:40px 30px; background:var(--glass); border:1px solid var(--border); border-radius:28px; text-align:center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);}
+.auth-box h1{font-size:32px; font-weight:900; background:var(--grad-primary); -webkit-background-clip:text; color:transparent;}
+.input-group{margin-bottom:16px;} .input-group input{width:100%; padding:14px 16px; border-radius:16px; background:rgba(0,0,0,0.3); border:1px solid var(--border); color:#fff;}
+.btn-primary{width:100%; padding:14px; border-radius:16px; background:var(--grad-primary); color:#fff; font-weight:800; font-size:16px; box-shadow:var(--shadow-glow);}
+
+/* ================= HEADER ================= */
+.app-header{position:sticky; top:0; z-index:50; background:rgba(5,5,10,0.85); backdrop-filter:blur(24px); border-bottom:1px solid var(--border);}
+.header-inner{max-width:1300px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:flex-start; gap:16px;}
+.brand{font-size:24px; font-weight:900; display:flex; align-items:center; gap:10px; margin-left: auto; cursor:pointer;}
+.header-actions{display:flex; align-items:center; gap:12px;}
+.icon-btn{width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--border); display:grid; place-items:center; color:#fff; font-size:20px; position:relative; transition:0.3s;}
+.icon-btn:hover{background:rgba(255,255,255,0.1); border-color:var(--primary);}
+.notif-dot{position:absolute; top:10px; right:10px; width:10px; height:10px; background:#ec4899; border-radius:50%; border:2px solid var(--bg); box-shadow:0 0 10px #ec4899;}
+.avatar{width:42px; height:42px; border-radius:50%; background:var(--grad-primary); display:grid; place-items:center; font-weight:bold; overflow:hidden; flex-shrink:0; border:2px solid transparent; cursor:pointer; box-shadow:var(--shadow-glow);}
+.avatar img{width:100%; height:100%; object-fit:cover;}
+
+.verified-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; color: #fff; font-size: 11px; font-weight: bold; box-shadow: 0 0 8px rgba(59,130,246,0.5); margin-right: 5px; vertical-align: middle; }
+.verified-badge::after { content: '✓'; }
+
+/* ================= LAYOUT ================= */
+.layout{max-width:1300px; margin:24px auto; padding:0 20px; display:grid; grid-template-columns:240px 1fr 280px; gap:24px; align-items:start;}
+.sidebar, .right-panel{position:sticky; top:90px;}
+.glass-card{background:var(--glass); border:1px solid var(--border); border-radius:24px; overflow:hidden; margin-bottom:20px; backdrop-filter:blur(16px); box-shadow:0 10px 30px rgba(0,0,0,0.2);}
+.nav-btn{width:calc(100% - 16px); display:flex; align-items:center; gap:12px; padding:14px 20px; color:var(--muted); font-weight:700; border-radius:16px; margin:4px 8px; cursor:pointer; transition:0.2s;}
+.nav-btn:hover, .nav-btn.active{background:rgba(139,92,246,0.15); color:#fff;}
+
+/* ================= STORIES & FEED ================= */
+.stories-wrapper{padding:16px; overflow-x:auto; display:flex; gap:16px;} .stories-wrapper::-webkit-scrollbar{display:none;}
+.story-item{display:flex; flex-direction:column; align-items:center; gap:8px; min-width:76px; cursor:pointer;}
+.story-ring{width:72px; height:72px; border-radius:50%; padding:3px; background:var(--grad-story);}
+.story-ring .avatar{width:100%; height:100%; border:3px solid var(--bg);}
+.story-name{font-size:12px; color:#e2e8f0; max-width:75px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.composer{padding:20px;} .composer-top{display:flex; gap:14px;}
+.composer textarea{flex:1; min-height:60px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:16px; padding:16px; color:#fff; resize:vertical;}
+.post-card{padding:20px; border-bottom:1px solid var(--border);}
+.post-header{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+.post-media{width:100%; border-radius:20px; border:1px solid var(--border); max-height:500px; object-fit:cover; background:#000;}
+.post-actions{display:flex; gap:12px; margin-top:16px; padding-top:12px; border-top:1px solid var(--border);}
+.action-btn{flex:1; padding:10px; border-radius:14px; background:rgba(255,255,255,0.03); color:var(--muted); font-weight:700; display:flex; justify-content:center; gap:8px; cursor:pointer;}
+.action-btn.liked{color:var(--secondary); background:rgba(236,72,153,0.1);}
+
+/* ================= PROFILE ================= */
+.tp-container { background: var(--bg); border-radius: 24px; overflow: hidden; position: relative; margin-bottom: 20px; border: 1px solid var(--border); }
+.tp-cover { height: 160px; background: linear-gradient(135deg, #2b2b2b, #111); background-size: cover; background-position: center; position: relative; cursor: pointer; }
+.tp-cover:hover::after { content: '📷 تغيير الغلاف'; position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; color: #fff; font-weight: bold; }
+.tp-top-actions { position: absolute; top: 15px; left: 15px; z-index: 10; }
+.tp-icon-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); color: #fff; display: grid; place-items: center; font-size: 18px; }
+.tp-avatar-wrap { position: absolute; bottom: -45px; right: 20px; width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--bg); background: #222; z-index: 10; cursor: pointer; }
+.tp-avatar-wrap:hover::after { content: '📷'; position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; border-radius: 50%; color: #fff; font-size: 24px; }
+.tp-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.tp-info-section { padding: 55px 20px 20px; text-align: center; position: relative; background: var(--glass); }
+.tp-name { font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.tp-handle { color: var(--muted); font-size: 14px; margin-bottom: 15px; }
+.tp-stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+.tp-stat-item { display: flex; flex-direction: column; align-items: center; } .tp-stat-num { font-size: 18px; font-weight: 800; } .tp-stat-label { font-size: 12px; color: var(--muted); }
+.tp-bio-btn { background: rgba(255,255,255,0.05); color: #fff; padding: 10px; border-radius: 8px; font-size: 14px; width: 100%; margin-bottom: 15px; text-align: center; cursor: pointer; border: 1px solid var(--border); }
+.tp-action-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.tp-action-btn { flex: 1; background: rgba(255,255,255,0.05); color: #fff; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 5px; border: 1px solid var(--border); }
+.tp-action-btn.main { background: var(--grad-primary); border: none; box-shadow: var(--shadow-glow); }
+.tp-tabs { display: flex; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--glass); }
+.tp-tab { flex: 1; text-align: center; padding: 12px 0; color: var(--muted); font-size: 20px; } .tp-tab.active { color: #fff; border-bottom: 2px solid var(--primary); }
+.tp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--bg); }
+.tp-grid-item { aspect-ratio: 3/4; position: relative; background: rgba(255,255,255,0.02); overflow: hidden; cursor: pointer; }
+.tp-grid-item img, .tp-grid-item video { width: 100%; height: 100%; object-fit: cover; }
+.tp-grid-text { padding: 10px; font-size: 12px; display: flex; align-items: center; justify-content: center; text-align: center; height: 100%; background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent); }
+.tp-grid-views { position: absolute; bottom: 8px; left: 8px; color: #fff; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.tp-grid-pin { position: absolute; top: 8px; right: 8px; background: var(--secondary); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+/* ================= CHAT (New Design) ================= */
+.chat-container{display:grid; grid-template-columns:320px 1fr; height:calc(100vh - 160px); border-radius:24px; overflow:hidden; background:var(--glass); border:1px solid var(--border);}
+.chat-sidebar{border-left:1px solid var(--border); overflow-y:auto; background:rgba(0,0,0,0.2); display:flex; flex-direction:column;}
+.chat-header-top{padding:16px; border-bottom:1px solid var(--border);}
+.chat-header-top h2{font-size:20px; font-weight:900; margin-bottom:12px;}
+.chat-tabs{display:flex; gap:10px;}
+.chat-tab{padding:6px 16px; border-radius:20px; font-size:13px; font-weight:700; color:var(--muted); background:rgba(255,255,255,0.05); cursor:pointer;}
+.chat-tab.active{background:var(--grad-primary); color:#fff;}
+.chat-list-inner{flex:1; overflow-y:auto;}
+.chat-person{display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--border); cursor:pointer; transition:0.2s;}
+.chat-person:hover, .chat-person.active{background:rgba(139,92,246,0.15);}
+.chat-person .avatar{width:50px; height:50px;}
+.chat-person-info{flex:1; min-width:0;}
+.chat-person-name{font-weight:800; font-size:15px; display:flex; justify-content:space-between; align-items:center;}
+.chat-person-name span{font-size:11px; color:var(--muted); font-weight:normal;}
+.chat-person-msg{font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;}
+
+.chat-window{display:flex; flex-direction:column; background:rgba(255,255,255,0.01);}
+.chat-header{padding:16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; font-weight:800; background:rgba(0,0,0,0.2);}
+.chat-header-info{flex:1; cursor:pointer;}
+.chat-header-info .name{font-size:16px;}
+.chat-header-info .status{font-size:12px; color:#10b981; display:flex; align-items:center; gap:4px;}
+.chat-header-info .status::before{content:''; width:8px; height:8px; background:#10b981; border-radius:50%; display:inline-block;}
+.chat-header-actions{display:flex; gap:12px;}
+.chat-header-actions button{color:var(--primary); font-size:20px; background:rgba(139,92,246,0.1); width:40px; height:40px; border-radius:50%; display:grid; place-items:center;}
+
+.chat-messages{flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;}
+.msg-bubble{max-width:75%; padding:12px 18px; border-radius:20px; font-size:14px; line-height:1.5; position:relative; word-wrap:break-word;}
+.msg-bubble.them{align-self:flex-start; background:rgba(255,255,255,0.1); border-bottom-right-radius:4px;}
+.msg-bubble.me{align-self:flex-end; background:var(--grad-chat-me); border-bottom-left-radius:4px; box-shadow:0 4px 15px rgba(147,51,234,0.3);}
+.msg-time{font-size:10px; opacity:0.6; margin-top:4px; text-align:left; display:block;}
+.msg-bubble audio { width: 100%; max-width: 220px; margin-top: 5px; height: 40px; border-radius: 10px; }
+
+/* Quick Replies & Input Area */
+.quick-replies{display:flex; gap:8px; padding:10px 16px; overflow-x:auto; background:rgba(0,0,0,0.1);} .quick-replies::-webkit-scrollbar{display:none;}
+.quick-reply-btn{white-space:nowrap; padding:8px 16px; border-radius:20px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--muted); font-size:13px; transition:0.2s;}
+.quick-reply-btn:hover{background:rgba(139,92,246,0.2); color:#fff; border-color:var(--primary);}
+
+.chat-input{padding:12px 16px; border-top:1px solid var(--border); display:flex; gap:10px; background:rgba(0,0,0,0.2); align-items:center;}
+.chat-input input{flex:1; padding:12px 20px; border-radius:24px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:#fff; outline:none;}
+.chat-input input:focus{border-color:var(--primary);}
+.chat-input button.send-btn{width:44px; height:44px; border-radius:50%; background:var(--grad-primary); color:#fff; display:grid; place-items:center; font-size:20px; box-shadow:var(--shadow-glow); flex-shrink:0;}
+.chat-input button.mic-btn{width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff; display:grid; place-items:center; font-size:20px; flex-shrink:0; transition:0.2s;}
+.chat-input button.mic-btn.recording{background:#ef4444; animation:pulse 1s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.7);}70%{box-shadow:0 0 0 15px rgba(239,68,68,0);}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}}
+
+/* ================= CALL MODALS ================= */
+.call-modal{position:fixed; inset:0; z-index:100000; background:#000; display:flex; flex-direction:column;}
+.call-video-container{flex:1; position:relative; background:#111; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+#remoteVideo{width:100%; height:100%; object-fit:cover;}
+#localVideo{position:absolute; bottom:20px; right:20px; width:120px; height:160px; object-fit:cover; border-radius:16px; border:2px solid rgba(255,255,255,0.3); z-index:10; box-shadow:0 10px 30px rgba(0,0,0,0.5);}
+.call-controls{padding:30px; display:flex; justify-content:center; gap:20px; background:rgba(0,0,0,0.8);}
+.call-btn{width:60px; height:60px; border-radius:50%; display:grid; place-items:center; font-size:24px; color:#fff; border:none; cursor:pointer;}
+.call-btn.end{background:#ef4444;}
+.call-btn.accept{background:#10b981;}
+.incoming-call-modal{position:fixed; inset:0; z-index:100001; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; backdrop-filter:blur(10px);}
+.incoming-call-modal .avatar{width:100px; height:100px; margin-bottom:20px;}
+.incoming-call-modal .call-actions{display:flex; gap:30px; margin-top:40px;}
+
+/* ================= FRIENDS & RIGHT PANEL ================= */
+.friends-header{padding:24px; background:linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.1)); border-radius:24px; margin-bottom:20px; border:1px solid var(--border); text-align:center;}
+.friends-header h2{font-size:24px; font-weight:900; margin-bottom:8px;}
+.friends-tabs{display:flex; gap:10px; margin-bottom:20px; overflow-x:auto;}
+.friends-tab{flex:1; padding:12px; text-align:center; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:16px; font-weight:700; color:var(--muted); cursor:pointer; min-width:120px;}
+.friends-tab.active{background:var(--grad-primary); color:#fff; border-color:transparent; box-shadow:var(--shadow-glow);}
+.friend-card{display:flex; align-items:center; gap:15px; padding:16px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:16px; margin-bottom:12px;}
+.friend-card .avatar{width:50px; height:50px;}
+.friend-info{flex:1; cursor:pointer;}
+.friend-info strong{display:block; font-size:16px;}
+.friend-actions{display:flex; gap:8px;}
+.btn-accept{background:var(--grad-primary); color:#fff; padding:8px 16px; border-radius:10px; font-weight:700; font-size:13px;}
+.btn-decline{background:rgba(255,255,255,0.1); color:#fff; padding:8px 16px; border-radius:10px; font-weight:700; font-size:13px;}
+.btn-add{background:rgba(139,92,246,0.2); color:var(--primary); border:1px solid var(--primary); padding:8px 16px; border-radius:10px; font-weight:700; font-size:13px;}
+
+.suggestion-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; padding: 8px; border-radius: 12px; transition: 0.2s; }
+.suggestion-row:hover { background: rgba(255,255,255,0.05); }
+.suggestion-row .avatar { width: 40px; height: 40px; }
+.suggestion-info { flex:1; cursor: pointer; min-width: 0; }
+.suggestion-info strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggestion-info span { font-size: 11px; color: var(--muted); }
+.btn-suggest-add { background: rgba(139,92,246,0.2); color: var(--primary); border: 1px solid var(--primary); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; transition: 0.2s; cursor: pointer; }
+.btn-suggest-add:hover { background: var(--primary); color: #fff; }
+
+/* ================= MODALS ================= */
+.modal-overlay { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-content { background: #0f1015; border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 500px; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow:0 20px 50px rgba(0,0,0,0.5); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 800; font-size: 18px; }
+.modal-close { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; color: #fff; display: grid; place-items: center; }
+.form-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
+.form-input { width: 100%; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; }
+.btn-save { width: 100%; padding: 14px; border-radius: 12px; background: var(--grad-primary); color: #fff; font-weight: 800; margin-top: 20px; }
+.notif-item { display:flex; gap:12px; padding:12px; border-bottom:1px solid var(--border); align-items:center; cursor:pointer; border-radius:12px; transition:0.2s; }
+.notif-item:hover { background:rgba(255,255,255,0.05); }
+.notif-item .avatar { width:40px; height:40px; }
+.notif-text { flex:1; font-size:14px; }
+.notif-time { font-size:11px; color:var(--muted); }
+.comments-list { max-height: 300px; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;}
+.comment-item { display: flex; gap: 10px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px;}
+.comment-item .avatar { width: 32px; height: 32px; font-size: 12px; cursor:pointer;}
+.comment-item .text { font-size: 13px; flex: 1;}
+.comment-item .name { font-weight: bold; color: var(--primary); font-size: 12px; display: block; cursor:pointer;}
+
+.post-options-list { display: flex; flex-direction: column; }
+.post-option-btn { padding: 16px; font-size: 16px; font-weight: 700; color: #fff; border-bottom: 1px solid var(--border); text-align: center; }
+.post-option-btn:last-child { border-bottom: none; color: var(--muted); }
+.post-option-btn:hover { background: rgba(255,255,255,0.05); }
+.post-option-btn.danger { color: #ec4899; }
+
+/* ================= REELS ================= */
+.reels-overlay-container { position: fixed; inset: 0; z-index: 9990; background: #000; display: flex; flex-direction: column; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+.reels-overlay-container::-webkit-scrollbar { display: none; }
+.reel-slide { position: relative; width: 100%; height: 100vh; flex-shrink: 0; scroll-snap-align: start; background: #000; }
+.reel-video { width: 100%; height: 100%; object-fit: cover; }
+.reel-gradient-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 30%, transparent 60%), linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 15%); pointer-events: none; }
+.reel-top-bar { position: absolute; top: 20px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; color: #fff; font-weight: 700; z-index: 10; }
+.reel-top-bar span { opacity: 0.6; font-size: 15px; cursor: pointer; } .reel-top-bar span.active { opacity: 1; font-size: 16px; border-bottom: 2px solid #fff; padding-bottom: 2px;}
+.reel-close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 30px; z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+.reel-side-actions { position: absolute; right: 12px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; z-index: 10; align-items: center; }
+.reel-action-btn { display: flex; flex-direction: column; align-items: center; color: #fff; gap: 4px; font-size: 11px; font-weight: 600; cursor:pointer;}
+.reel-action-icon { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); display: grid; place-items: center; font-size: 22px; border: 1px solid rgba(255,255,255,0.2); transition: 0.2s; }
+.reel-action-btn.liked .reel-action-icon { color: #ec4899; background: rgba(236,72,153,0.3); }
+.reel-bottom-info { position: absolute; bottom: 20px; left: 16px; right: 80px; color: #fff; z-index: 10; }
+.reel-user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.reel-user-row .avatar { width: 36px; height: 36px; border: 2px solid #fff; cursor:pointer;}
+.reel-user-name { font-weight: 800; font-size: 15px; cursor:pointer;}
+.reel-caption { font-size: 14px; line-height: 1.5; margin-bottom: 10px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.reel-music-disc { width: 30px; height: 30px; border-radius: 50%; background: #333; border: 4px solid #111; display: grid; place-items: center; animation: spin 4s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* ================= FLOATING MOBILE NAV ================= */
+.mobile-nav{display:none;}
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr; padding:0;}
+  .sidebar, .right-panel{display:none;}
+  .glass-card{border-radius:0; border-left:none; border-right:none; margin-bottom:10px;}
+  .app-header{padding:8px 12px;}
+  .header-inner{padding:0; gap:12px;}
+  .brand{font-size:20px; margin-left:auto;} .brand-icon{width:32px; height:32px;}
+  
+  .mobile-nav{display:flex; justify-content:space-around; align-items:center; position:fixed; bottom:20px; left:16px; right:16px; background:rgba(18,18,28,0.85); backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,0.08); border-radius:35px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); z-index:100; box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);}
+  .mobile-nav button{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--muted); font-size:10px; font-weight:700; position:relative; padding:8px 12px; border-radius:20px; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);}
+  .mobile-nav button svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:all 0.3s ease;}
+  .mobile-nav button.active{ color:#fff; }
+  .mobile-nav button.active::before{ content:''; position:absolute; inset:0; background:rgba(139,92,246,0.15); border-radius:20px; border:1px solid rgba(139,92,246,0.3); box-shadow:0 0 15px rgba(139,92,246,0.2); z-index:-1; }
+  .mobile-nav button.active svg{ stroke:var(--primary); filter:drop-shadow(0 0 8px rgba(139,92,246,0.8)); transform:scale(1.1) translateY(-2px); }
+  .mobile-nav button:active{ transform:scale(0.92); }
+
+  .chat-container{grid-template-columns:1fr; height:calc(100vh - 160px); border-radius:0; border:none;}
+  .chat-sidebar{display:none;}
+  .chat-sidebar.active{display:flex;}
+  .chat-window{display:none;}
+  .chat-window.active{display:flex;}
+  .back-btn-chat{display:grid !important;}
+}
+.back-btn-chat{display:none; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff; place-items:center; font-size:18px; margin-left:8px;}
+
+.toast{position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--grad-primary); color:#fff; padding:12px 24px; border-radius:30px; font-weight:700; z-index:100000; animation:slideUp 0.3s ease; box-shadow: var(--shadow-glow);}
+@keyframes slideUp{from{opacity:0; transform:translate(-50%, 20px);} to{opacity:1; transform:translate(-50%, 0);}}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-box">
+    <h1>WASL</h1>
+    <p class="muted" style="margin-bottom:20px;">تواصل مع من تحب بأمان 💜</p>
+    <div class="input-group"><input type="email" id="authEmail" placeholder="البريد الإلكتروني"></div>
+    <div class="input-group"><input type="password" id="authPassword" placeholder="كلمة المرور"></div>
+    <button class="btn-primary" id="btnLogin">تسجيل الدخول</button>
+    <button id="btnSignup" style="margin-top:10px; color:var(--primary); background:none; border:none; cursor:pointer;">إنشاء حساب جديد</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="hidden">
+  
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand" onclick="document.querySelector('[data-page=home]').click()"><div class="brand-icon">و</div> WASL</div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openSearchModal()" title="بحث">⌕</button>
+        <button class="icon-btn" onclick="openNotifications()" title="الإشعارات">
+          🔔 <span id="notifDot" class="notif-dot hidden"></span>
+        </button>
+        <div class="avatar" id="headerAvatar" onclick="document.querySelector('[data-page=profile]').click()">و</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar glass-card" style="padding:12px 0;">
+      <button class="nav-btn active" data-page="home"><span>⌂</span> الرئيسية</button>
+      <button class="nav-btn" data-page="messages"><span>✉</span> الرسائل</button>
+      <button class="nav-btn" data-page="reels"><span>▶</span> الريلز</button>
+      <button class="nav-btn" data-page="friends"><span>👥</span> الأصدقاء</button>
+      <button class="nav-btn" data-page="profile"><span>◎</span> حسابي</button>
+      <button class="nav-btn" onclick="openPrivacyModal()"><span>🛡️</span> الخصوصية</button>
+      <button class="nav-btn" onclick="supabaseClient.auth.signOut()"><span>⇥</span> خروج</button>
+    </aside>
+
+    <main id="mainContent">
+      <section id="homePage">
+        <div class="glass-card" style="padding:10px 16px; margin-bottom:20px;">
+          <div class="stories-wrapper" id="storiesContainer"></div>
+          <input type="file" id="storyFile" accept="image/*,video/mp4,video/webm" hidden>
+        </div>
+        <div class="glass-card composer">
+          <div class="composer-top">
+            <div class="avatar" id="composerAvatar">و</div>
+            <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+          </div>
+          <div id="mediaPreviewBox" class="hidden" style="margin-top:10px;position:relative;display:inline-block">
+            <img id="previewImg" class="hidden" style="max-height:200px;border-radius:12px">
+            <video id="previewVid" class="hidden" controls style="max-height:200px;border-radius:12px;background:#000" controlsList="nodownload"></video>
+            <button onclick="clearMedia()" style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.5); color:#fff; border-radius:50%; width:30px; height:30px;">✕</button>
+          </div>
+          <div class="composer-actions">
+            <label for="postMedia" class="nav-btn" style="width:auto; padding:8px 12px; cursor:pointer;">📷 صورة/فيديو</label>
+            <input type="file" id="postMedia" accept="image/*,video/mp4" hidden>
+            <button class="btn-primary" id="btnPublish" style="width:auto; padding:8px 24px;">نشر</button>
+          </div>
+        </div>
+        <div id="feed"></div>
+      </section>
+
+      <section id="otherPage" class="hidden"></section>
+    </main>
+
+    <aside class="right-panel">
+      <div class="glass-card" style="padding:20px;">
+        <h3 style="font-size:16px; margin-bottom:16px;">اكتشف أصدقاء</h3>
+        <div id="suggestions" class="muted">جاري التحميل...</div>
+        <button class="btn-primary" style="width:100%; margin-top:10px; font-size:13px;" data-page="friends">عرض المزيد</button>
+      </div>
+    </aside>
+  </div>
+
+  <nav class="mobile-nav">
+    <button class="active" data-page="home"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span>الرئيسية</span></button>
+    <button data-page="reels"><svg viewBox="0 0 24 24"><polygon points="10 8 16 12 10 16 10 8"></polygon><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect></svg><span>ريلز</span></button>
+    <button data-page="messages"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span>الرسائل</span></button>
+    <button data-page="friends"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>الأصدقاء</span></button>
+    <button data-page="profile"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>حسابي</span></button>
+  </nav>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastBox"></div>
+
+<script>
+// ================= SETUP =================
+const SUPABASE_URL = 'https://mzghenvgjweconmresjo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xqeR3GoMGLuzd7s_Ldf_pQ_mEHGbYg-';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+let me = null, selectedMediaFile = null, profileCache = {}, activeReels = [], currentChatUser = null;
+let messageChannel = null;
+
+// WebRTC & Media Variables
+let peerConnection = null;
+let localStream = null;
+let callChannel = null;
+let mediaRecorder = null;
+let audioChunks = [];
+
+// ================= UTILS =================
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; $('toastBox').appendChild(t); setTimeout(() => t.remove(), 3000); }
+function esc(str) { return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function timeAgo(d) { const s=(Date.now()-new Date(d).getTime())/1000; if(s<60)return'الآن'; if(s<3600)return`منذ ${Math.floor(s/60)}د`; if(s<86400)return`منذ ${Math.floor(s/3600)}س`; return`منذ ${Math.floor(s/86400)}ي`; }
+function avatarHtml(p) { 
+  if(!p) return `<div class="avatar">و</div>`;
+  const clickAttr = p.id ? `onclick="event.stopPropagation(); viewUserProfile('${p.id}')"` : '';
+  return `<div class="avatar" ${clickAttr} style="cursor:pointer;">${p.avatar_url ? `<img src="${p.avatar_url}">` : esc(p.full_name?.[0] || 'و')}</div>`; 
+}
+
+const BAD_WORDS_REGEX = /(ك\s*س\s*م|ش\s*ر\s*م\s*و\s*ط|ع\s*ر\s*ص|خ\s*و\s*ل|ن\s*ي\s*ك|ط\s*ي\s*ز|ز\s*ب\s*ي|ق\s*ح\s*ب\s*ة|م\s*ت\s*ن\s*ا\s*ك|ا\s*ب\s*ن\s*ا\s*ل\s*ك\s*ل\s*ب|ح\s*ي\s*و\s*ا\s*ن|ا\s*ب\s*ت\s*ز\s*ا\s*ز)/i;
+function moderateText(text) { if (!text) return { ok: true }; if (BAD_WORDS_REGEX.test(text)) return { ok: false, reason: '⚠️ يرجى الالتزام بالآداب العامة.' }; return { ok: true }; }
+
+// ================= AUTH & BOOT =================
+$('btnLogin').onclick = async () => {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email: $('authEmail').value, password: $('authPassword').value });
+  if (error) return toast('خطأ: ' + error.message); initApp(data.session);
+};
+$('btnSignup').onclick = async () => {
+  const name = prompt('أدخل اسمك:'); if (!name) return;
+  const { data, error } = await supabaseClient.auth.signUp({ email: $('authEmail').value, password: $('authPassword').value, options: { data: { full_name: name } } });
+  if (error) return toast('خطأ: ' + error.message);
+  if (data.session) { await supabaseClient.from('profiles').insert({ id: data.user.id, full_name: name }); initApp(data.session); }
+};
+supabaseClient.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { $('appScreen').classList.add('hidden'); $('authScreen').classList.remove('hidden'); } });
+
+async function initApp(session) {
+  if (!session) return;
+  $('authScreen').classList.add('hidden'); $('appScreen').classList.remove('hidden');
+  const { data } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+  me = data || { id: session.user.id, full_name: 'مستخدم' };
+  ['headerAvatar', 'composerAvatar'].forEach(id => { const el = $(id); if (el) el.outerHTML = avatarHtml(me).replace('class="avatar"', `class="avatar" id="${id}"`); });
+  loadStories(); loadFeed(); loadSuggestions();
+  listenForIncomingCalls();
+}
+supabaseClient.auth.getSession().then(({ data }) => { if (data.session) initApp(data.session); });
+
+// ================= NAVIGATION =================
+document.querySelectorAll('[data-page]').forEach(btn => {
+  btn.onclick = () => {
+    const page = btn.dataset.page;
+    document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll(`[data-page="${page}"]`).forEach(b => b.classList.add('active'));
+    if(page === 'reels') { openFullscreenReels(); return; }
+    $('homePage').classList.toggle('hidden', page !== 'home');
+    $('otherPage').classList.toggle('hidden', page === 'home');
+    
+    if (page === 'messages') renderMessages();
+    if (page === 'friends') renderFriendsPage();
+    if (page === 'profile') renderProfile(me.id);
+  };
+});
+
+// ================= FETCH SUGGESTIONS =================
+async function loadSuggestions() {
+  const container = $('suggestions');
+  container.innerHTML = '<div class="muted" style="text-align:center;">جاري التحميل...</div>';
+
+  const { data: friendships } = await supabaseClient.from('friendships').select('requester_id, addressee_id, status').or(`requester_id.eq.${me.id},addressee_id.eq.${me.id}`);
+  const relatedIds = new Set();
+  if (friendships) friendships.forEach(f => relatedIds.add(f.requester_id === me.id ? f.addressee_id : f.requester_id));
+  
+  const excludedIds = [me.id, ...Array.from(relatedIds)];
+  const { data: profiles, error } = await supabaseClient.from('profiles').select('*').not('id', 'in', `(${excludedIds.join(',')})`).limit(5);
+
+  if (error || !profiles || profiles.length === 0) {
+    container.innerHTML = '<div class="muted" style="text-align:center;">لا توجد اقتراحات حالياً.</div>';
+    return;
+  }
+
+  container.innerHTML = profiles.map(p => {
+    profileCache[p.id] = p;
+    return `
+    <div class="suggestion-row">
+      ${avatarHtml(p)}
+      <div class="suggestion-info" onclick="viewUserProfile('${p.id}')">
+        <strong>${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</strong>
+        <span>@${esc(p.username || 'user')}</span>
+      </div>
+      <button class="btn-suggest-add" onclick="sendFriendRequest('${p.id}', this)">إضافة</button>
+    </div>
+    `;
+  }).join('');
+}
+
+// ================= CHAT (NEW DESIGN + CALLS + RECORDING) =================
+async function renderMessages() {
+  const host = $('otherPage');
+  host.innerHTML = `
+    <div class="chat-container">
+      <div class="chat-sidebar active" id="chatSidebarContainer">
+        <div class="chat-header-top">
+          <h2>الدردشات</h2>
+          <div class="chat-tabs">
+            <div class="chat-tab active">الأصدقاء</div>
+            <div class="chat-tab">الطلبات</div>
+          </div>
+        </div>
+        <div class="chat-list-inner" id="chatList"><div class="muted" style="padding:16px; text-align:center;">جاري التحميل...</div></div>
+      </div>
+      <div class="chat-window" id="chatWindowContainer">
+        <div class="chat-header">
+          <button class="back-btn-chat" onclick="document.getElementById('chatSidebarContainer').classList.add('active'); document.getElementById('chatWindowContainer').classList.remove('active');">➔</button>
+          <div id="chatHead" style="flex:1;">اختر شخصاً للمحادثة</div>
+          <div class="chat-header-actions" id="chatHeaderActions" style="display:none;">
+            <button onclick="startCall(false)" title="مكالمة صوتية">📞</button>
+            <button onclick="startCall(true)" title="مكالمة فيديو">📹</button>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMsgs"></div>
+        
+        <!-- Quick Replies -->
+        <div class="quick-replies" id="quickReplies" style="display:none;">
+          <button class="quick-reply-btn" onclick="sendQuickReply('مرحباً 👋')">مرحباً 👋</button>
+          <button class="quick-reply-btn" onclick="sendQuickReply('كيف حالك؟')">كيف حالك؟</button>
+          <button class="quick-reply-btn" onclick="sendQuickReply('رائع!')">رائع!</button>
+        </div>
+
+        <div class="chat-input">
+          <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="تسجيل صوتي">🎤</button>
+          <input type="text" id="chatInput" placeholder="اكتب رسالة..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
+          <button class="send-btn" id="chatSend" disabled onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const { data: profiles } = await supabaseClient.from('profiles').select('*').neq('id', me.id).limit(50);
+  if (!profiles || profiles.length === 0) return $('chatList').innerHTML = '<div class="muted" style="padding:16px; text-align:center;">لا يوجد مستخدمون آخرون بعد.</div>';
+  
+  profiles.forEach(p => profileCache[p.id] = p);
+
+  const renderList = (users) => {
+    $('chatList').innerHTML = users.map(p => `
+      <div class="chat-person" data-id="${p.id}" onclick="openChat('${p.id}', this)">
+        ${avatarHtml(p)}
+        <div class="chat-person-info">
+          <div class="chat-person-name">${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''} <span>10:30 ص</span></div>
+          <div class="chat-person-msg">اضغط لبدء المحادثة...</div>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  renderList(profiles);
+}
+
+window.openChat = async (uid, el) => {
+  currentChatUser = uid;
+  
+  if(window.innerWidth <= 768) {
+    $('chatSidebarContainer').classList.remove('active');
+    $('chatWindowContainer').classList.add('active');
+  }
+
+  document.querySelectorAll('.chat-person').forEach(x => x.classList.remove('active'));
+  if(el) el.classList.add('active');
+
+  const p = profileCache[uid] || {full_name: 'مستخدم'};
+  
+  $('chatHead').innerHTML = `
+    <div class="chat-header-info" onclick="viewUserProfile('${uid}')">
+      <div class="name">${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</div>
+      <div class="status">متصل الآن</div>
+    </div>
+  `;
+  $('chatHeaderActions').style.display = 'flex';
+  $('chatInput').disabled = false; 
+  $('chatSend').disabled = false;
+  $('quickReplies').style.display = 'flex';
+
+  const fetchMsgs = async () => {
+    const { data: msgs, error } = await supabaseClient.from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${me.id},receiver_id.eq.${uid}),and(sender_id.eq.${uid},receiver_id.eq.${me.id})`)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      toast('تعذر تحميل الرسائل: ' + error.message);
+      return;
+    }
+
+    $('chatMsgs').innerHTML = msgs.map(m => {
+      let contentHTML = esc(m.content);
+      if (m.content.startsWith('AUDIO_URL::')) {
+        const url = m.content.replace('AUDIO_URL::', '');
+        contentHTML = `<audio controls src="${url}"></audio>`;
+      }
+      return `
+      <div class="msg-bubble ${m.sender_id === me.id ? 'me' : 'them'}">
+        ${contentHTML}
+        <span class="msg-time">${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+      </div>`;
+    }).join('');
+    $('chatMsgs').scrollTop = $('chatMsgs').scrollHeight;
+  };
+
+  await fetchMsgs();
+
+  if (messageChannel) supabaseClient.removeChannel(messageChannel);
+  messageChannel = supabaseClient.channel('chat-'+me.id+'-'+uid)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+      const m = payload.new;
+      if((m.sender_id === me.id && m.receiver_id === uid) || (m.sender_id === uid && m.receiver_id === me.id)) {
+        fetchMsgs();
+      }
+    })
+    .subscribe();
+
+  initCallChannel(uid);
+};
+
+window.sendMessage = async () => {
+  const val = $('chatInput').value.trim(); if (!val || !currentChatUser) return;
+  if (!moderateText(val).ok) return toast('الرسالة تحتوي على كلمات ممنوعة.');
+  
+  $('chatSend').disabled = true;
+  $('chatInput').value = '';
+  
+  $('chatMsgs').innerHTML += `<div class="msg-bubble me">${esc(val)}<span class="msg-time">الآن</span></div>`;
+  $('chatMsgs').scrollTop = $('chatMsgs').scrollHeight;
+
+  const { error } = await supabaseClient.from('messages').insert({ sender_id: me.id, receiver_id: currentChatUser, content: val });
+  
+  $('chatSend').disabled = false;
+  
+  if (error) {
+    toast('فشل حفظ الرسالة: ' + error.message);
+    $('chatInput').value = val;
+  }
+};
+
+window.sendQuickReply = (text) => {
+  $('chatInput').value = text;
+  $('chatSend').click();
+};
+
+// Voice Recording Logic
+window.toggleRecording = async () => {
+  const micBtn = $('micBtn');
+  if (!currentChatUser) return toast('اختر محادثة أولاً');
+  
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    micBtn.classList.remove('recording');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      audioChunks = [];
+      stream.getTracks().forEach(track => track.stop());
+
+      toast('جاري رفع الرسالة الصوتية...');
+      const fileName = `audio_${Date.now()}.webm`;
+      const { error } = await supabaseClient.storage.from('post-images').upload(fileName, audioBlob);
+      
+      if (error) return toast('فشل رفع الصوت: ' + error.message);
+      
+      const { data } = supabaseClient.storage.from('post-images').getPublicUrl(fileName);
+      
+      await supabaseClient.from('messages').insert({ 
+        sender_id: me.id, 
+        receiver_id: currentChatUser, 
+        content: `AUDIO_URL::${data.publicUrl}` 
+      });
+    };
+
+    mediaRecorder.start();
+    micBtn.classList.add('recording');
+    toast('جاري التسجيل... اضغط مرة أخرى للإيقاف');
+  } catch (err) {
+    toast('يرجى السماح بالوصول للميكروفون.');
+  }
+};
+
+// ================= WEBRTC CALLS LOGIC =================
+function listenForIncomingCalls() {
+  const roomName = `incoming-${me.id}`;
+  supabaseClient.channel(roomName)
+    .on('broadcast', { event: 'offer' }, payload => {
+      showIncomingCall(payload.payload, payload.payload.callerId);
+    })
+    .subscribe();
+}
+
+let activeCallChannel = null;
+
+function initCallChannel(targetUid) {
+  if (activeCallChannel) supabaseClient.removeChannel(activeCallChannel);
+  const roomName = [me.id, targetUid].sort().join('-');
+  
+  activeCallChannel = supabaseClient.channel(`call-${roomName}`);
+  activeCallChannel
+    .on('broadcast', { event: 'offer' }, payload => {
+      showIncomingCall(payload.payload, targetUid);
+    })
+    .on('broadcast', { event: 'answer' }, async payload => {
+      if (peerConnection) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.payload));
+      }
+    })
+    .on('broadcast', { event: 'ice-candidate' }, payload => {
+      if (peerConnection) {
+        peerConnection.addIceCandidate(new RTCIceCandidate(payload.payload));
+      }
+    })
+    .on('broadcast', { event: 'end-call' }, () => {
+      endCall();
+    })
+    .subscribe();
+}
+
+window.startCall = async (isVideo) => {
+  if (!currentChatUser) return toast('اختر محادثة أولاً');
+  
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+    setupPeerConnection();
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    activeCallChannel.send({ type: 'broadcast', event: 'offer', payload: { sdp: offer, isVideo, callerId: me.id } });
+    supabaseClient.channel(`incoming-${currentChatUser}`).send({ type: 'broadcast', event: 'offer', payload: { sdp: offer, isVideo, callerId: me.id } });
+    
+    showCallUI(isVideo, true);
+  } catch (err) {
+    toast('تعذر بدء المكالمة. تأكد من الصلاحيات والكاميرا.');
+  }
+};
+
+function showIncomingCall(payload, callerId) {
+  const caller = profileCache[callerId] || { full_name: 'مستخدم' };
+  
+  $('modalRoot').innerHTML = `
+    <div class="incoming-call-modal">
+      ${avatarHtml(caller)}
+      <h2>مكالمة ${payload.isVideo ? 'فيديو' : 'صوتية'} واردة</h2>
+      <p class="muted">من ${esc(caller.full_name)}</p>
+      <div class="call-actions">
+        <button class="call-btn end" onclick="declineCall('${callerId}')">✕</button>
+        <button class="call-btn accept" onclick='acceptCall(${JSON.stringify(payload).replace(/'/g, "&#39;")}, "${callerId}")'>📞</button>
+      </div>
+    </div>
+  `;
+}
+
+window.declineCall = (callerId) => {
+  $('modalRoot').innerHTML = '';
+  const roomName = [me.id, callerId].sort().join('-');
+  supabaseClient.channel(`call-${roomName}`).send({ type: 'broadcast', event: 'end-call' });
+};
+
+window.acceptCall = async (payload, callerId) => {
+  $('modalRoot').innerHTML = '';
+  currentChatUser = callerId;
+  
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: payload.isVideo, audio: true });
+    setupPeerConnection();
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    
+    const roomName = [me.id, callerId].sort().join('-');
+    const ch = supabaseClient.channel(`call-${roomName}`);
+    ch.subscribe(); 
+    setTimeout(() => ch.send({ type: 'broadcast', event: 'answer', payload: answer }), 500);
+    
+    showCallUI(payload.isVideo, true);
+  } catch (err) {
+    toast('تعذر قبول المكالمة.');
+  }
+};
+
+function setupPeerConnection() {
+  peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+  peerConnection.onicecandidate = event => {
+    if (event.candidate && currentChatUser) {
+      const roomName = [me.id, currentChatUser].sort().join('-');
+      supabaseClient.channel(`call-${roomName}`).send({ type: 'broadcast', event: 'ice-candidate', payload: event.candidate });
+    }
+  };
+
+  peerConnection.ontrack = event => {
+    const remoteVideo = document.getElementById('remoteVideo');
+    if (remoteVideo && remoteVideo.srcObject !== event.streams[0]) {
+      remoteVideo.srcObject = event.streams[0];
+    }
+  };
+}
+
+function showCallUI(isVideo, isConnected) {
+  $('modalRoot').innerHTML = `
+    <div class="call-modal" id="callModal">
+      <div class="call-video-container">
+        ${isVideo ? `<video id="remoteVideo" autoplay playsinline></video>` : `<div style="display:flex;flex-direction:column;align-items:center;color:#fff;"><h2>مكالمة صوتية</h2><p>جاري الاتصال...</p></div>`}
+        <video id="localVideo" autoplay playsinline muted style="${isVideo ? '' : 'display:none;'}"></video>
+      </div>
+      <div class="call-controls">
+        <button class="call-btn end" onclick="endCall()">✕</button>
+      </div>
+    </div>
+  `;
+  
+  const localVideo = document.getElementById('localVideo');
+  if (localVideo && localStream && isVideo) localVideo.srcObject = localStream;
+}
+
+window.endCall = () => {
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  $('modalRoot').innerHTML = '';
+  if (currentChatUser) {
+    const roomName = [me.id, currentChatUser].sort().join('-');
+    supabaseClient.channel(`call-${roomName}`).send({ type: 'broadcast', event: 'end-call' });
+  }
+};
+
+// ================= FRIENDS PAGE =================
+async function renderFriendsPage() {
+  const host = $('otherPage');
+  host.innerHTML = `
+    <div class="friends-header"><h2>الأصدقاء 👥</h2><p class="muted">تواصل مع من يهمك، واكتشف أصدقاء جدد.</p></div>
+    <div class="friends-tabs">
+      <div class="friends-tab active" onclick="switchFriendTab('requests', this)">طلبات الصداقة</div>
+      <div class="friends-tab" onclick="switchFriendTab('friends', this)">أصدقائي</div>
+      <div class="friends-tab" onclick="switchFriendTab('suggestions', this)">أشخاص قد تعرفهم</div>
+    </div>
+    <div id="friendListContainer"><div class="muted" style="text-align:center;">جاري التحميل...</div></div>
+  `;
+  
+  const { data: friendships } = await supabaseClient.from('friendships').select('*').or(`requester_id.eq.${me.id},addressee_id.eq.${me.id}`);
+  const allFriendships = friendships || [];
+
+  const incomingRequests = allFriendships.filter(f => f.addressee_id === me.id && f.status === 'pending');
+  const outgoingRequests = allFriendships.filter(f => f.requester_id === me.id && f.status === 'pending');
+  const friends = allFriendships.filter(f => f.status === 'accepted');
+  
+  const friendIds = friends.map(f => f.requester_id === me.id ? f.addressee_id : f.requester_id);
+  const incomingIds = incomingRequests.map(f => f.requester_id);
+  const outgoingIds = outgoingRequests.map(f => f.addressee_id);
+
+  const relatedIds = [...new Set([...friendIds, ...incomingIds, ...outgoingIds])];
+  if (relatedIds.length) {
+    const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', relatedIds);
+    profiles?.forEach(p => profileCache[p.id] = p);
+  }
+
+  const excludedIds = [me.id, ...friendIds, ...incomingIds, ...outgoingIds];
+  const { data: suggestions } = await supabaseClient.from('profiles').select('*').not('id', 'in', `(${excludedIds.join(',')})`).limit(20);
+  suggestions?.forEach(p => profileCache[p.id] = p);
+
+  window.switchFriendTab = (tab, el) => {
+    document.querySelectorAll('.friends-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const container = $('friendListContainer');
+
+    if (tab === 'requests') {
+      if (incomingRequests.length === 0) return container.innerHTML = '<div class="muted" style="text-align:center; padding:20px;">لا توجد طلبات صداقة جديدة.</div>';
+      container.innerHTML = incomingRequests.map(req => {
+        const p = profileCache[req.requester_id];
+        return `<div class="friend-card">
+          ${avatarHtml(p)}
+          <div class="friend-info" onclick="viewUserProfile('${p.id}')"><strong>${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</strong><span class="muted small">يريد إضافتك</span></div>
+          <div class="friend-actions">
+            <button class="btn-accept" onclick="acceptFriend('${req.id}')">قبول</button>
+            <button class="btn-decline" onclick="rejectFriend('${req.id}')">رفض</button>
+          </div>
+        </div>`;
+      }).join('');
+    } 
+    else if (tab === 'friends') {
+      if (friends.length === 0) return container.innerHTML = '<div class="muted" style="text-align:center; padding:20px;">ليس لديك أصدقاء بعد.</div>';
+      container.innerHTML = friends.map(f => {
+        const uid = f.requester_id === me.id ? f.addressee_id : f.requester_id;
+        const p = profileCache[uid];
+        return `<div class="friend-card">
+          ${avatarHtml(p)}
+          <div class="friend-info" onclick="viewUserProfile('${p.id}')"><strong>${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</strong><span class="muted small">صديق</span></div>
+          <div class="friend-actions">
+            <button class="btn-add" onclick="goToChat('${uid}')">مراسلة</button>
+          </div>
+        </div>`;
+      }).join('');
+    } 
+    else if (tab === 'suggestions') {
+      if (suggestions.length === 0) return container.innerHTML = '<div class="muted" style="text-align:center; padding:20px;">لا توجد اقتراحات حالياً.</div>';
+      container.innerHTML = suggestions.map(p => {
+        const isPending = outgoingIds.includes(p.id);
+        return `<div class="friend-card">
+          ${avatarHtml(p)}
+          <div class="friend-info" onclick="viewUserProfile('${p.id}')"><strong>${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</strong><span class="muted small">@${esc(p.username || 'user')}</span></div>
+          <div class="friend-actions">
+            ${isPending 
+              ? `<button class="btn-decline" disabled style="opacity:0.5;">تم الإرسال</button>`
+              : `<button class="btn-add" onclick="sendFriendRequest('${p.id}', this)">إضافة</button>`
+            }
+          </div>
+        </div>`;
+      }).join('');
+    }
+  };
+
+  switchFriendTab('requests', document.querySelector('.friends-tab'));
+}
+
+window.goToChat = (uid) => {
+  document.querySelector('[data-page=messages]').click();
+  setTimeout(() => openChat(uid), 300);
+};
+
+window.sendFriendRequest = async (targetId, btn) => {
+  const originalText = btn.textContent;
+  btn.textContent = '...';
+  btn.disabled = true;
+  
+  const { error } = await supabaseClient.from('friendships').insert({ requester_id: me.id, addressee_id: targetId, status: 'pending' });
+  
+  if (error) { 
+    toast('خطأ: ' + error.message); 
+    btn.textContent = originalText; 
+    btn.disabled = false;
+  } else { 
+    toast('تم إرسال الطلب ✨'); 
+    btn.outerHTML = `<button class="btn-decline" disabled style="opacity:0.5;">تم الإرسال</button>`; 
+    loadSuggestions();
+  }
+};
+
+window.acceptFriend = async (reqId) => {
+  await supabaseClient.from('friendships').update({ status: 'accepted' }).eq('id', reqId);
+  toast('تم قبول الصداقة 💜'); renderFriendsPage(); loadSuggestions();
+};
+window.rejectFriend = async (reqId) => {
+  await supabaseClient.from('friendships').delete().eq('id', reqId);
+  toast('تم رفض الطلب'); renderFriendsPage();
+};
+window.viewUserProfile = async (userId) => {
+  if (userId === me.id) {
+    document.querySelector('[data-page=profile]').click();
+    return;
+  }
+  document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active'));
+  $('homePage').classList.add('hidden');
+  $('otherPage').classList.remove('hidden');
+  await renderProfile(userId);
+};
+
+// ================= PROFILE =================
+async function renderProfile(userId) {
+  const isMe = userId === me.id;
+  const host = $('otherPage'); 
+  host.innerHTML = '<div class="muted" style="text-align:center; padding:50px;">جاري تحميل الملف الشخصي...</div>';
+  
+  let targetUser = profileCache[userId];
+  if (!targetUser || isMe) {
+    const { data } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+    targetUser = data;
+    if (isMe) me = data;
+  }
+  if(!targetUser) return host.innerHTML = '<div class="muted" style="text-align:center; padding:50px;">المستخدم غير موجود.</div>';
+  profileCache[userId] = targetUser;
+
+  const { data: posts } = await supabaseClient.from('posts').select('*').eq('author_id', userId).is('deleted_at', null).order('created_at', {ascending: false});
+  const { data: media } = await supabaseClient.from('post_media').select('*').in('post_id', posts?.map(p=>p.id) || []);
+  const { count: following } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('requester_id', userId).eq('status', 'accepted');
+  const { count: followers } = await supabaseClient.from('friendships').select('*', { count: 'exact', head: true }).eq('addressee_id', userId).eq('status', 'accepted');
+  const { count: likesCount } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+  let friendStatus = 'none';
+  if(!isMe) {
+    const { data: f } = await supabaseClient.from('friendships').select('status').or(`and(requester_id.eq.${userId},addressee_id.eq.${me.id}),and(requester_id.eq.${me.id},addressee_id.eq.${userId})`).maybeSingle();
+    if(f) friendStatus = f.status;
+  }
+
+  const coverUrl = targetUser.cover_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000&auto=format&fit=crop';
+  const avatarUrl = targetUser.avatar_url || '';
+
+  const coverAction = isMe ? `onclick="document.getElementById('coverUploadInput').click()"` : '';
+  const avatarAction = isMe ? `onclick="event.stopPropagation(); document.getElementById('avatarUploadInput').click()"` : '';
+  
+  const actionButtons = isMe ? `
+    <div class="tp-action-row">
+      <button class="tp-action-btn main" onclick="showEditProfileModal()">تعديل الملف الشخصي</button>
+      <button class="tp-action-btn" onclick="openPrivacyModal()">الخصوصية 🛡️</button>
+    </div>
+  ` : `
+    <div class="tp-action-row">
+      <button class="tp-action-btn main" onclick="goToChat('${userId}')">مراسلة 💬</button>
+      ${friendStatus === 'accepted' ? `<button class="tp-action-btn" disabled style="opacity:0.6;">صديق ✓</button>` : 
+        friendStatus === 'pending' ? `<button class="tp-action-btn" disabled style="opacity:0.6;">طلب مرسل</button>` :
+        `<button class="tp-action-btn" onclick="sendFriendRequest('${userId}', this)">إضافة صديق +</button>`
+      }
+    </div>
+  `;
+
+  host.innerHTML = `
+    <div class="tp-container">
+      <div class="tp-cover" style="background-image: url('${coverUrl}'); ${isMe ? 'cursor:pointer;' : ''}" ${coverAction}>
+        ${isMe ? `<input type="file" id="coverUploadInput" accept="image/*" hidden onchange="uploadProfileImage(this.files[0], 'cover_url', 'cover')">` : ''}
+        ${isMe ? `<div class="tp-top-actions" onclick="event.stopPropagation()"><button class="tp-icon-btn" onclick="showEditProfileModal()" title="تعديل الملف">✎</button></div>` : ''}
+        
+        <div class="tp-avatar-wrap" ${avatarAction}>
+          ${avatarUrl ? `<img src="${avatarUrl}">` : `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:30px;background:var(--primary);">${esc(targetUser.full_name[0])}</div>`}
+          ${isMe ? `<input type="file" id="avatarUploadInput" accept="image/*" hidden onchange="uploadProfileImage(this.files[0], 'avatar_url', 'avatar')">` : ''}
+        </div>
+      </div>
+      
+      <div class="tp-info-section">
+        <div class="tp-name">
+          ${esc(targetUser.full_name)} 
+          ${targetUser.is_verified ? `<span class="verified-badge" title="حساب موثّق"></span>` : ''}
+        </div>
+        <div class="tp-handle">@${esc(targetUser.username || 'user_' + targetUser.id.substring(0,4))}</div>
+        <div class="tp-stats">
+          <div class="tp-stat-item"><span class="tp-stat-num">${following || 0}</span><span class="tp-stat-label">أتابعه</span></div>
+          <div class="tp-stat-item"><span class="tp-stat-num">${followers || 0}</span><span class="tp-stat-label">متابعين</span></div>
+          <div class="tp-stat-item"><span class="tp-stat-num">${likesCount || 0}</span><span class="tp-stat-label">تسجيلات الإعجاب</span></div>
+        </div>
+        <div class="tp-bio-btn" ${isMe ? 'onclick="showEditProfileModal()"' : ''}>${targetUser.bio ? esc(targetUser.bio) : (isMe ? '+ إضافة سيرة ذاتية 💖' : 'لا توجد نبذة')}</div>
+        ${actionButtons}
+      </div>
+      
+      <div class="tp-tabs"><div class="tp-tab active">▦</div><div class="tp-tab">🔒</div><div class="tp-tab">🔁</div><div class="tp-tab">🔖</div><div class="tp-tab">♡</div></div>
+      
+      <div class="tp-grid">
+        ${posts?.length ? posts.map((p, index) => {
+          const m = media?.find(x => x.post_id === p.id);
+          return `<div class="tp-grid-item" onclick="${m ? '' : `toast('${esc(p.content?.substring(0, 50))}...')`}">${m ? (m.media_type === 'video' ? `<video src="${m.media_url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${m.media_url}">`) : `<div class="tp-grid-text">${esc(p.content?.substring(0, 30) || 'منشور')}</div>`}<div class="tp-grid-views">150 ▶</div>${index === 0 && isMe ? `<div class="tp-grid-pin">مثبت</div>` : ''}</div>`;
+        }).join('') : `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted);">لا توجد منشورات بعد.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+// ================= FEED & COMPOSER =================
+$('postMedia').onchange = (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  selectedMediaFile = file; const url = URL.createObjectURL(file);
+  $('mediaPreviewBox').classList.remove('hidden');
+  if (file.type.startsWith('video')) { $('previewVid').src = url; $('previewVid').classList.remove('hidden'); $('previewImg').classList.add('hidden'); } 
+  else { $('previewImg').src = url; $('previewImg').classList.remove('hidden'); $('previewVid').classList.add('hidden'); }
+};
+window.clearMedia = () => { selectedMediaFile = null; $('postMedia').value = ''; $('mediaPreviewBox').classList.add('hidden'); };
+
+$('btnPublish').onclick = async () => {
+  const text = $('postText').value.trim();
+  if (!text && !selectedMediaFile) return toast('اكتب شيئاً أو أضف وسائط');
+  if (!moderateText(text).ok) return toast('المحتوى يحتوي على كلمات ممنوعة.');
+  const btn = $('btnPublish'); btn.disabled = true; btn.textContent = 'جاري النشر...';
+  try {
+    let mediaUrl = null, mediaType = null;
+    if (selectedMediaFile) {
+      mediaType = selectedMediaFile.type.startsWith('video') ? 'video' : 'image';
+      const path = `${me.id}/${Date.now()}.${selectedMediaFile.name.split('.').pop()}`;
+      const { error: upErr } = await supabaseClient.storage.from('post-images').upload(path, selectedMediaFile);
+      if (upErr) throw upErr;
+      const { data } = supabaseClient.storage.from('post-images').getPublicUrl(path);
+      mediaUrl = data.publicUrl;
+    }
+    const { data: post, error } = await supabaseClient.from('posts').insert({ author_id: me.id, content: text }).select().single();
+    if (error) throw error;
+    if (mediaUrl) await supabaseClient.from('post_media').insert({ post_id: post.id, uploader_id: me.id, media_url: mediaUrl, media_type: mediaType });
+    $('postText').value = ''; clearMedia(); toast('تم النشر بنجاح 💜'); loadFeed();
+  } catch (err) { toast('فشل النشر: ' + err.message); } finally { btn.disabled = false; btn.textContent = 'نشر'; }
+};
+
+async function loadFeed() {
+  const feed = $('feed'); feed.innerHTML = '<div class="muted" style="text-align:center; padding:20px;">جاري التحميل...</div>';
+  const { data: posts } = await supabaseClient.from('posts').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(20);
+  if (!posts || posts.length === 0) return feed.innerHTML = '<div class="muted" style="text-align:center; padding:20px;">لا توجد منشورات.</div>';
+  const { data: media } = await supabaseClient.from('post_media').select('*').in('post_id', posts.map(p => p.id));
+  const { data: likes } = await supabaseClient.from('likes').select('*').in('post_id', posts.map(p => p.id));
+  const uids = [...new Set(posts.map(p => p.author_id))];
+  const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', uids);
+  profiles.forEach(p => profileCache[p.id] = p);
+
+  feed.innerHTML = posts.map(post => {
+    const author = profileCache[post.author_id] || { full_name: 'مستخدم' };
+    const m = media?.find(x => x.post_id === post.id);
+    const isOwner = post.author_id === me.id;
+    const menuBtn = isOwner ? `<button style="margin-right:auto; color:var(--muted); font-size:20px;" onclick="openPostMenu('${post.id}', \`${esc(post.content || '')}\`)">⋮</button>` : '';
+    const postLikes = likes?.filter(l => l.post_id === post.id) || [];
+    const isLiked = postLikes.some(l => l.user_id === me.id);
+    const likesCount = postLikes.length;
+
+    return `
+    <div class="glass-card post-card">
+      <div class="post-header">
+        ${avatarHtml(author)}
+        <div style="cursor:pointer;" onclick="viewUserProfile('${author.id}')">
+          <div style="font-weight:800;">${esc(author.full_name)} ${author.is_verified ? `<span class="verified-badge"></span>` : ''}</div>
+          <div class="muted" style="font-size:11px;">${timeAgo(post.created_at)}</div>
+        </div>
+        ${menuBtn}
+      </div>
+      ${post.content ? `<div style="margin:12px 0; font-size:15px;">${esc(post.content)}</div>` : ''}
+      ${m ? (m.media_type === 'video' ? `<video class="post-media" controls controlsList="nodownload" src="${m.media_url}"></video>` : `<img class="post-media" src="${m.media_url}">`) : ''}
+      <div class="post-actions">
+        <div class="action-btn ${isLiked ? 'liked' : ''}" onclick="togglePostLike('${post.id}', this)">
+          ${isLiked ? '💙' : '♡'} إعجاب ${likesCount > 0 ? `(${likesCount})` : ''}
+        </div>
+        <div class="action-btn" onclick="showPostComments('${post.id}')">💬 تعليق</div>
+        <div class="action-btn" onclick="sharePost('${post.id}')">↗ مشاركة</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function togglePostLike(postId, btn) {
+  const isLiked = btn.classList.contains('liked');
+  if (isLiked) {
+    await supabaseClient.from('likes').delete().match({ post_id: postId, user_id: me.id });
+    btn.classList.remove('liked'); btn.innerHTML = '♡ إعجاب';
+  } else {
+    await supabaseClient.from('likes').insert({ post_id: postId, user_id: me.id });
+    btn.classList.add('liked'); btn.innerHTML = '💙 أعجبني';
+  }
+}
+
+function showPostComments(postId) {
+  $('modalRoot').innerHTML = `<div class="modal-overlay" id="commentModal" onclick="document.getElementById('modalRoot').innerHTML=''"><div class="modal-content" onclick="event.stopPropagation()"><div class="modal-header"><span>التعليقات 💬</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div><div class="comments-list" id="postCommentsList"><div class="muted">جاري التحميل...</div></div><div style="display:flex; gap:8px;"><input type="text" id="postCommentInput" class="form-input" placeholder="أضف تعليقاً..."><button class="btn-primary" style="width:auto; padding:0 16px;" onclick="addPostComment('${postId}')">إرسال</button></div></div></div>`;
+  const fetchComments = async () => {
+    const { data: comments } = await supabaseClient.from('comments').select('*').eq('post_id', postId).order('created_at', {ascending: true});
+    const list = $('postCommentsList');
+    if(!comments || comments.length === 0) return list.innerHTML = '<div class="muted">لا توجد تعليقات بعد.</div>';
+    const uids = [...new Set(comments.map(c => c.user_id || c.author_id))]; 
+    const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', uids);
+    profiles.forEach(p => profileCache[p.id] = p);
+    list.innerHTML = comments.map(c => {
+      const uid = c.user_id || c.author_id;
+      const p = profileCache[uid] || {full_name: 'مستخدم'};
+      return `<div class="comment-item">${avatarHtml(p)}<div class="text"><span class="name" onclick="document.getElementById('modalRoot').innerHTML=''; viewUserProfile('${uid}')">${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</span>${esc(c.content)}</div></div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
+  };
+  window.addPostComment = async (pid) => {
+    const text = $('postCommentInput').value.trim(); if(!text) return;
+    if(!moderateText(text).ok) return toast('تعليق ممنوع');
+    $('postCommentInput').value = '';
+    await supabaseClient.from('comments').insert({ post_id: pid, author_id: me.id, content: text });
+    fetchComments();
+  };
+  fetchComments();
+}
+
+async function sharePost(postId) {
+  try {
+    await navigator.clipboard.writeText(`${location.origin}${location.pathname}#post-${postId}`);
+    toast('تم نسخ رابط المنشور 🔗');
+  } catch { toast('تعذر نسخ الرابط'); }
+}
+
+// ================= POST EDIT & DELETE =================
+window.openPostMenu = (postId, currentContent) => {
+  $('modalRoot').innerHTML = `
+    <div class="modal-overlay" id="postOptionsModal" onclick="document.getElementById('modalRoot').innerHTML=''">
+      <div class="modal-content" onclick="event.stopPropagation()" style="padding:0; overflow:hidden;">
+        <div class="post-options-list">
+          <button class="post-option-btn" onclick="editPostPrompt('${postId}', \`${esc(currentContent)}\`)">✏️ تعديل المنشور</button>
+          <button class="post-option-btn danger" onclick="deletePostPrompt('${postId}')">🗑️ حذف المنشور</button>
+          <button class="post-option-btn" onclick="document.getElementById('modalRoot').innerHTML=''">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window.editPostPrompt = (postId, currentContent) => {
+  $('modalRoot').innerHTML = `
+    <div class="modal-overlay" onclick="document.getElementById('modalRoot').innerHTML=''">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header"><span>تعديل المنشور</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div>
+        <textarea id="editPostContent" class="form-input" style="height:150px; resize:vertical;">${esc(currentContent)}</textarea>
+        <button class="btn-save" onclick="saveEditedPost('${postId}')">حفظ التعديلات</button>
+      </div>
+    </div>
+  `;
+};
+
+window.saveEditedPost = async (postId) => {
+  const newContent = $('editPostContent').value.trim();
+  if (!moderateText(newContent).ok) return toast('نص ممنوع');
+  await supabaseClient.from('posts').update({ content: newContent }).eq('id', postId);
+  toast('تم التعديل ✏️'); $('modalRoot').innerHTML = ''; loadFeed(); renderProfile(me.id);
+};
+
+window.deletePostPrompt = async (postId) => {
+  if (confirm('هل أنت متأكد من حذف هذا المنشور نهائياً؟')) {
+    await supabaseClient.from('posts').delete().eq('id', postId);
+    toast('تم الحذف 🗑️'); $('modalRoot').innerHTML = ''; loadFeed(); renderProfile(me.id);
+  }
+};
+
+// ================= SEARCH & NOTIFICATIONS =================
+function openSearchModal() {
+  $('modalRoot').innerHTML = `<div class="modal-overlay" id="searchModal" onclick="document.getElementById('modalRoot').innerHTML=''"><div class="modal-content" onclick="event.stopPropagation()" style="max-width:500px;"><div class="modal-header"><span>البحث 🔍</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div><input type="text" id="globalSearchInput" class="form-input" placeholder="ابحث بالاسم أو اسم المستخدم..." oninput="performGlobalSearch(this.value)" autofocus><div id="searchResultsList" style="margin-top:15px; display:flex; flex-direction:column; gap:10px;"></div></div></div>`;
+}
+
+let searchTimeout;
+async function performGlobalSearch(val) {
+  clearTimeout(searchTimeout);
+  const query = val.trim();
+  const list = $('searchResultsList');
+  if(!query) { list.innerHTML = ''; return; }
+  
+  searchTimeout = setTimeout(async () => {
+    list.innerHTML = '<div class="muted" style="text-align:center;">جاري البحث...</div>';
+    const { data: profiles } = await supabaseClient.from('profiles').select('*').neq('id', me.id).or(`full_name.ilike.%${query}%,username.ilike.%${query}%`).limit(10);
+      
+    if(!profiles || profiles.length === 0) {
+      list.innerHTML = '<div class="muted" style="text-align:center; padding:10px;">لا توجد نتائج مطابقة.</div>';
+      return;
+    }
+
+    list.innerHTML = profiles.map(p => `
+      <div class="notif-item" onclick="document.getElementById('modalRoot').innerHTML=''; viewUserProfile('${p.id}');">
+        ${avatarHtml(p)}
+        <div class="notif-text"><strong style="display:block;">${esc(p.full_name)} ${p.is_verified ? '<span class="verified-badge"></span>' : ''}</strong><span class="muted small">@${esc(p.username || 'user')}</span></div>
+        <span style="color:var(--primary); font-size:13px; font-weight:bold;">عرض الملف</span>
+      </div>
+    `).join('');
+  }, 400);
+}
+
+async function openNotifications() {
+  $('notifDot').classList.add('hidden');
+  $('modalRoot').innerHTML = `<div class="modal-overlay" id="notifModal" onclick="document.getElementById('modalRoot').innerHTML=''"><div class="modal-content" onclick="event.stopPropagation()"><div class="modal-header"><span>الإشعارات 🔔</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div><div id="notifList"><div class="muted" style="text-align:center;">جاري التحميل...</div></div></div></div>`;
+
+  const { data: myPosts } = await supabaseClient.from('posts').select('id, content').eq('author_id', me.id);
+  if(!myPosts || myPosts.length === 0) return $('notifList').innerHTML = '<div class="muted" style="text-align:center; padding:20px;">لا توجد إشعارات حالياً.</div>';
+  
+  const postIds = myPosts.map(p => p.id);
+  const { data: likes } = await supabaseClient.from('likes').select('*').in('post_id', postIds).neq('user_id', me.id).order('created_at', {ascending: false}).limit(10);
+  const { data: comments } = await supabaseClient.from('comments').select('*').in('post_id', postIds).neq('author_id', me.id).order('created_at', {ascending: false}).limit(10);
+
+  const allNotifs = [];
+  const uids = [...new Set([...(likes||[]).map(l=>l.user_id), ...(comments||[]).map(c=>c.author_id)])];
+  if(uids.length) {
+    const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', uids);
+    profiles.forEach(p => profileCache[p.id] = p);
+  }
+
+  (likes||[]).forEach(l => allNotifs.push({ type: 'like', user: profileCache[l.user_id], time: l.created_at, post: myPosts.find(p=>p.id===l.post_id)?.content }));
+  (comments||[]).forEach(c => allNotifs.push({ type: 'comment', user: profileCache[c.author_id], time: c.created_at, post: myPosts.find(p=>p.id===c.post_id)?.content, comment: c.content }));
+
+  allNotifs.sort((a,b) => new Date(b.time) - new Date(a.time));
+
+  if(allNotifs.length === 0) return $('notifList').innerHTML = '<div class="muted" style="text-align:center; padding:20px;">لا توجد إشعارات جديدة.</div>';
+
+  $('notifList').innerHTML = allNotifs.slice(0, 15).map(n => `
+    <div class="notif-item" onclick="document.getElementById('modalRoot').innerHTML=''; viewUserProfile('${n.user.id}');">
+      ${avatarHtml(n.user)}
+      <div class="notif-text"><strong>${esc(n.user?.full_name || 'مستخدم')} ${n.user?.is_verified ? '<span class="verified-badge"></span>' : ''}</strong> ${n.type === 'like' ? 'أعجب بمنشورك.' : `علّق: "${esc(n.comment)}"`}<div class="notif-time">${timeAgo(n.time)}</div></div>
+    </div>
+  `).join('');
+}
+
+// ================= REELS & STORIES =================
+async function openFullscreenReels() {
+  const oldReels = $('waslReelsContainer');
+  if (oldReels) oldReels.remove();
+  const container = document.createElement('div');
+  container.id = 'waslReelsContainer';
+  container.className = 'reels-overlay-container';
+  container.innerHTML = '<div style="color:#fff; text-align:center; padding:50px; font-size:18px;">جاري تحميل الريلز...</div>';
+  document.body.appendChild(container);
+
+  const { data: reels } = await supabaseClient.from('reels').select('*').order('created_at', {ascending: false});
+  activeReels = reels || [];
+  
+  if (activeReels.length === 0) {
+    container.innerHTML = `<div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; background:#000;"><h2 style="margin-bottom:20px;">لا توجد ريلز بعد 🎬</h2><label for="reelUploadInput" class="btn-primary" style="width:auto; padding:12px 30px; cursor:pointer;">إضافة ريل جديد ＋</label><input type="file" id="reelUploadInput" accept="video/*" hidden><button onclick="document.getElementById('waslReelsContainer').remove()" style="margin-top:20px; color:#aaa; text-decoration:underline;">رجوع</button></div>`;
+    $('reelUploadInput').onchange = handleReelUpload; return;
+  }
+
+  const uids = [...new Set(activeReels.map(r=>r.user_id))];
+  const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', uids);
+  profiles?.forEach(p => profileCache[p.id] = p);
+  const { data: likes } = await supabaseClient.from('reel_likes').select('*').in('reel_id', activeReels.map(r => r.id));
+  const { data: commentsCount } = await supabaseClient.from('reel_comments').select('reel_id').in('reel_id', activeReels.map(r => r.id));
+
+  container.innerHTML = `
+    <div style="position:fixed; bottom:90px; left:50%; transform:translateX(-50%); z-index:9999;">
+       <label for="reelUploadInput" class="btn-primary" style="width:auto; padding:12px 24px; border-radius:30px; box-shadow:0 10px 20px rgba(0,0,0,0.5); cursor:pointer;">＋ إضافة ريل</label>
+       <input type="file" id="reelUploadInput" accept="video/*" hidden>
+    </div>
+    ${activeReels.map((r, index) => {
+      const p = profileCache[r.user_id] || {full_name:'مستخدم'};
+      const rLikes = likes?.filter(l => l.reel_id === r.id) || [];
+      const isLiked = rLikes.some(l => l.user_id === me.id);
+      const likesCount = rLikes.length;
+      const cCount = commentsCount?.filter(c => c.reel_id === r.id).length || 0;
+
+      return `
+      <div class="reel-slide">
+        <video class="reel-video" src="${r.video_url}" loop playsinline controlsList="nodownload" oncontextmenu="return false;" muted ${index === 0 ? 'autoplay' : ''}></video>
+        <div class="reel-gradient-overlay"></div>
+        <div class="reel-top-bar"><span>متابعة</span><span class="active">لك</span></div>
+        <button class="reel-close-btn" onclick="document.getElementById('waslReelsContainer').remove()">✕</button>
+        <div class="reel-side-actions">
+          <div class="reel-action-btn ${isLiked ? 'liked' : ''}" onclick="toggleReelLike('${r.id}', this)">
+            <div class="reel-action-icon">${isLiked ? '♥' : '♡'}</div><span>${likesCount}</span>
+          </div>
+          <div class="reel-action-btn" onclick="showReelComments('${r.id}')">
+            <div class="reel-action-icon">💬</div><span>${cCount}</span>
+          </div>
+          <div class="reel-action-btn" onclick="navigator.clipboard.writeText('${r.video_url}'); toast('تم نسخ الرابط')">
+            <div class="reel-action-icon">↗</div><span>مشاركة</span>
+          </div>
+          <div class="reel-action-btn"><div class="reel-music-disc">🎵</div></div>
+        </div>
+        <div class="reel-bottom-info">
+          <div class="reel-user-row">
+            ${avatarHtml(p).replace('width:40px; height:40px;', 'width:36px; height:36px;')}
+            <strong class="reel-user-name">@${esc(p.full_name)}</strong>
+          </div>
+          <p class="reel-caption">${esc(r.caption || 'ريل جديد على وَصْل ✨')}</p>
+          <div class="reel-tags">🎵 صوت أصلي - ${esc(p.full_name)} <br><span style="opacity:0.8">#WASL #Trending</span></div>
+        </div>
+      </div>
+      `;
+    }).join('')}
+  `;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target.querySelector('video');
+      if (entry.isIntersecting) { video.muted = false; video.play().catch(e => { video.muted = true; video.play(); }); } 
+      else { video.pause(); }
+    });
+  }, { threshold: 0.6 });
+
+  document.querySelectorAll('.reel-slide').forEach(el => observer.observe(el));
+  $('reelUploadInput').onchange = handleReelUpload;
+}
+
+async function handleReelUpload(e) {
+  const file = e.target.files[0]; if(!file) return;
+  toast('جاري رفع الفيديو...');
+  const path = `${me.id}/reel-${Date.now()}.${file.name.split('.').pop()}`;
+  try {
+    const { error } = await supabaseClient.storage.from('wasl-reels').upload(path, file);
+    if(error) throw error;
+    const { data } = supabaseClient.storage.from('wasl-reels').getPublicUrl(path);
+    await supabaseClient.from('reels').insert({ user_id: me.id, video_url: data.publicUrl, caption: 'ريل جديد' });
+    toast('تم نشر الريل! 🎬'); $('waslReelsContainer')?.remove(); openFullscreenReels();
+  } catch(err) { toast('خطأ: ' + err.message); }
+}
+
+async function loadStories() {
+  const { data: stories } = await supabaseClient.from('stories').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
+  const container = $('storiesContainer');
+  container.innerHTML = `<div class="story-item" onclick="document.getElementById('storyFile').click()"><div class="story-ring" style="background:#2d2d3d; border:2px dashed var(--primary)"><div class="avatar" style="background:var(--primary); color:#fff; font-size:24px;">＋</div></div><span class="story-name">أضف قصة</span></div>`;
+  if (!stories || stories.length === 0) return;
+  const uids = [...new Set(stories.map(s => s.user_id))];
+  const { data: profiles } = await supabaseClient.from('profiles').select('*').in('id', uids);
+  profiles.forEach(p => profileCache[p.id] = p);
+  const grouped = {};
+  stories.forEach(s => { if (!grouped[s.user_id]) grouped[s.user_id] = []; grouped[s.user_id].push(s); });
+  for (const uid in grouped) {
+    const p = profileCache[uid];
+    container.innerHTML += `<div class="story-item" onclick='openStoryViewer(${JSON.stringify(grouped[uid]).replace(/'/g, "&#39;")}, ${JSON.stringify(p).replace(/'/g, "&#39;")})'><div class="story-ring">${avatarHtml(p)}</div><span class="story-name">${esc(p.full_name.split(' ')[0])}</span></div>`;
+  }
+}
+$('storyFile').onchange = async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  toast('جاري رفع القصة...');
+  const path = `stories/${me.id}/${Date.now()}.${file.name.split('.').pop()}`;
+  try {
+    const { error: upErr } = await supabaseClient.storage.from('post-images').upload(path, file);
+    if (upErr) throw upErr;
+    const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
+    await supabaseClient.from('stories').insert({ user_id: me.id, media_url: urlData.publicUrl, media_type: file.type.startsWith('video') ? 'video' : 'image', expires_at: new Date(Date.now() + 86400000).toISOString() });
+    toast('تم النشر ✨'); loadStories();
+  } catch (err) { toast('فشل: ' + err.message); }
+  e.target.value = '';
+};
+function openStoryViewer(stories, profile) {
+  let idx = 0, timer; const root = $('toastBox');
+  const render = () => {
+    const s = stories[idx];
+    root.innerHTML = `<div class="story-viewer"><div class="story-progress">${stories.map((_, i) => `<div class="p-bar"><div class="p-fill" id="fill-${i}" style="width:${i < idx ? '100%' : '0%'}"></div></div>`).join('')}</div><div class="story-header">${avatarHtml(profile)} <strong>${esc(profile.full_name)}</strong><button style="margin-right:auto; color:#fff; font-size:24px;" onclick="this.closest('.story-viewer').remove()">✕</button></div><div class="story-content" onclick="handleStoryClick(event)">${s.media_type === 'video' ? `<video src="${s.media_url}" autoplay controlsList="nodownload" onended="nextStory()"></video>` : `<img src="${s.media_url}">`}</div><div class="story-footer"><input type="text" class="story-reply" placeholder="أرسل رداً..." onkeypress="if(event.key==='Enter'){toast('تم إرسال الرد'); this.value='';}"><button class="story-icon" onclick="toast('تم الإعجاب ❤️')">♡</button></div></div>`;
+    const fill = document.getElementById(`fill-${idx}`); const dur = s.media_type === 'video' ? 15000 : 5000;
+    fill.style.transition = `width ${dur}ms linear`; setTimeout(() => fill.style.width = '100%', 50);
+    clearTimeout(timer); timer = setTimeout(() => nextStory(), dur);
+  };
+  window.nextStory = () => { clearTimeout(timer); if (idx < stories.length - 1) { idx++; render(); } else root.innerHTML = ''; };
+  window.handleStoryClick = (e) => { if (e.clientX > window.innerWidth / 2) nextStory(); else { clearTimeout(timer); if (idx > 0) { idx--; render(); } } };
+  render();
+}
+
+async function uploadProfileImage(file, field, kind) {
+  if (!file) return;
+  toast('جاري رفع الصورة...');
+  const ext = file.name.split('.').pop();
+  const path = `${me.id}/profile-${kind}-${Date.now()}.${ext}`;
+  try {
+    const { error: upErr } = await supabaseClient.storage.from('post-images').upload(path, file);
+    if (upErr) throw upErr;
+    const { data } = supabaseClient.storage.from('post-images').getPublicUrl(path);
+    const { error: dbErr } = await supabaseClient.from('profiles').update({ [field]: data.publicUrl }).eq('id', me.id);
+    if (dbErr) throw dbErr;
+    me[field] = data.publicUrl; toast('تم تحديث الصورة ✨'); renderProfile(me.id);
+  } catch (err) { toast('فشل الرفع: ' + err.message); }
+}
+
+function showEditProfileModal() {
+  $('modalRoot').innerHTML = `<div class="modal-overlay" id="editProfileModal" onclick="document.getElementById('modalRoot').innerHTML=''"><div class="modal-content" onclick="event.stopPropagation()"><div class="modal-header"><span>تعديل الملف الشخصي</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div><label class="form-label">الاسم</label><input type="text" id="editName" class="form-input" value="${esc(me.full_name)}"><label class="form-label">اسم المستخدم</label><input type="text" id="editUsername" class="form-input" value="${esc(me.username || '')}"><label class="form-label">نبذة</label><textarea id="editBio" class="form-input" rows="3">${esc(me.bio || '')}</textarea><button class="btn-save" onclick="saveProfileChanges()">حفظ</button></div></div>`;
+}
+window.saveProfileChanges = async () => {
+  const newName = $('editName').value.trim(), newUsername = $('editUsername').value.trim() || null, newBio = $('editBio').value.trim();
+  if (!newName) return toast('الاسم مطلوب');
+  const { error } = await supabaseClient.from('profiles').update({ full_name: newName, username: newUsername, bio: newBio }).eq('id', me.id);
+  if (error) return toast('خطأ: ' + error.message);
+  me.full_name = newName; me.username = newUsername; me.bio = newBio;
+  toast('تم الحفظ ✨'); $('modalRoot').innerHTML=''; renderProfile(me.id); updateIdentity();
+};
+function openPrivacyModal() {
+  $('modalRoot').innerHTML = `<div class="modal-overlay" id="privacyModal" onclick="document.getElementById('modalRoot').innerHTML=''"><div class="modal-content" onclick="event.stopPropagation()"><div class="modal-header"><span>الخصوصية 🛡️</span><button class="modal-close" onclick="document.getElementById('modalRoot').innerHTML=''">✕</button></div><div class="privacy-text"><p>نحن في WASL نحترم خصوصيتك ونلتزم بحماية بياناتك.</p><p>تُستخدم بياناتك لتشغيل حسابك، ولضمان أمان المنصة.</p></div><button class="btn-save" onclick="document.getElementById('modalRoot').innerHTML=''">إغلاق</button></div></div>`;
+}
+
+function updateIdentity() {
+  const name = me.full_name || 'حسابي';
+  ['headerAvatar', 'composerAvatar'].forEach(id => { const el = $(id); if (el) el.outerHTML = avatarHtml(me).replace('class="avatar"', `class="avatar" id="${id}"`); });
+}
+
+document.addEventListener('contextmenu', e => {
+  if(e.target.tagName === 'VIDEO' || e.target.tagName === 'IMG') e.preventDefault();
+});
+</script>
+</body>
+</html>
