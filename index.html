@@ -260,8 +260,27 @@ button:active{transform:scale(0.95);}
 .toast{position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--grad-primary); color:#fff; padding:12px 24px; border-radius:30px; font-weight:700; z-index:100000; animation:slideUp 0.3s ease; box-shadow: var(--shadow-glow);}
 @keyframes slideUp{from{opacity:0; transform:translate(-50%, 20px);} to{opacity:1; transform:translate(-50%, 0);}}
 </style>
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="application-name" content="WASL">
+<meta name="apple-mobile-web-app-title" content="WASL">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
 </head>
 <body>
+
+<div id="pwaSplash" style="position:fixed;inset:0;z-index:200000;background:#05050A;display:grid;place-items:center;transition:opacity .35s ease;">
+  <div style="text-align:center;font-family:Cairo,sans-serif;color:#fff">
+    <div style="width:88px;height:88px;margin:0 auto 16px;border-radius:26px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:grid;place-items:center;font-size:42px;font-weight:900;box-shadow:0 0 35px #8b5cf655">و</div>
+    <div style="font-size:28px;font-weight:900;letter-spacing:2px">WASL</div>
+    <div style="color:#9ca3af;font-size:13px">تواصل أقرب 💜</div>
+  </div>
+</div>
+
 
 <!-- AUTH -->
 <div id="authScreen" class="auth-screen">
@@ -281,7 +300,7 @@ button:active{transform:scale(0.95);}
   <header class="app-header">
     <div class="header-inner">
       <div class="brand" onclick="document.querySelector('[data-page=home]').click()"><div class="brand-icon">و</div> WASL</div>
-      <div class="header-actions">
+      <div class="header-actions"><button class="icon-btn" id="pwaInstallBtn" title="تثبيت التطبيق" style="display:none;font-size:15px;">⬇️</button><button class="icon-btn" id="pwaBackBtn" title="رجوع" style="font-size:18px;">↩</button><button class="icon-btn" id="pwaNotifBtn" title="تفعيل الإشعارات" style="font-size:17px;">🔔</button>
         <button class="icon-btn" onclick="openSearchModal()" title="بحث">⌕</button>
         <button class="icon-btn" onclick="openNotifications()" title="الإشعارات">
           🔔 <span id="notifDot" class="notif-dot hidden"></span>
@@ -1408,6 +1427,74 @@ function updateIdentity() {
 document.addEventListener('contextmenu', e => {
   if(e.target.tagName === 'VIDEO' || e.target.tagName === 'IMG') e.preventDefault();
 });
+
+// ================= PWA HELPERS =================
+let waslInstallPrompt = null;
+
+window.addEventListener('load', () => {
+  const splash = document.getElementById('pwaSplash');
+  if (splash) {
+    setTimeout(() => {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 400);
+    }, 650);
+  }
+});
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(err => console.warn('PWA Service Worker:', err));
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  waslInstallPrompt = event;
+  const btn = document.getElementById('pwaInstallBtn');
+  if (btn) btn.style.display = 'grid';
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const installBtn = document.getElementById('pwaInstallBtn');
+  if (installBtn) installBtn.addEventListener('click', async () => {
+    if (!waslInstallPrompt) {
+      toast('من قائمة Chrome اختر "إضافة إلى الشاشة الرئيسية" أو "تثبيت التطبيق".');
+      return;
+    }
+    waslInstallPrompt.prompt();
+    await waslInstallPrompt.userChoice;
+    waslInstallPrompt = null;
+    installBtn.style.display = 'none';
+  });
+
+  const backBtn = document.getElementById('pwaBackBtn');
+  if (backBtn) backBtn.addEventListener('click', () => {
+    if (history.length > 1) history.back();
+    else toast('أنت في الصفحة الرئيسية');
+  });
+
+  const notifBtn = document.getElementById('pwaNotifBtn');
+  if (notifBtn) notifBtn.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      toast('المتصفح لا يدعم إشعارات الويب.');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      toast('الإشعارات مفعّلة على هذا الجهاز.');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      toast('الإشعارات محظورة؛ فعّلها من إعدادات الموقع في المتصفح.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    toast(permission === 'granted'
+      ? 'تم السماح بالإشعارات. الإشعارات أثناء إغلاق التطبيق تحتاج إعداد Push Server.'
+      : 'لم يتم السماح بالإشعارات.');
+  });
+});
+
 </script>
 </body>
 </html>
